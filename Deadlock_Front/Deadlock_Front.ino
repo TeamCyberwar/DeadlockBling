@@ -28,6 +28,7 @@ Adafruit_NeoPixel pixels = Adafruit_NeoPixel(PIXEL_W * PIXEL_H, PIN_NEOPIXEL, NE
 volatile unsigned long last_activity = 0x00UL;
 volatile unsigned long pulse_length = 0x00UL;
 enum _states {s_failsafe, s_breathe_red, s_larson_scan, s_orange_term, s_rainbow_sparkles} current_state;
+void rainbow_sparkles(void);
 
 
 void setup(void) {
@@ -66,6 +67,7 @@ void loop(void) {
     case s_orange_term:
       break;
     case s_rainbow_sparkles:
+      rainbow_sparkles();
       break;
     case s_failsafe:
     default:
@@ -74,7 +76,7 @@ void loop(void) {
 
   }
   pixels.show(); // write out
-  
+
   while ((micros() - loop_timer) < 100000);
 }
 
@@ -97,5 +99,24 @@ void rc_handler(void) {
 
   last_activity = micros();
 
+  return;
+}
+
+/** Generates random sparkles
+ *  Inspired by: https://github.com/pimoroni/unicorn-hat
+ */
+void rainbow_sparkles(void) {
+  const unsigned int pixel_count = 8;
+  unsigned int x, y, r, g, b;
+
+  for (int i = 0; i < pixel_count; i++)
+  {
+    x = random(0, PIXEL_W);
+    y = random(0, PIXEL_H);
+    r = random(0, 255);
+    g = random(0, 255);
+    b = random(0, 255);
+    pixels.setPixelColor(((y * PIXEL_W) + x), r, g, b);
+  }
   return;
 }
