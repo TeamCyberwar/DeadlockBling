@@ -7,6 +7,7 @@
 */
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_SleepyDog.h>
+#include <math.h>
 
 /** Settings */
 #define BAUD_RATE       (115200)
@@ -28,6 +29,7 @@ Adafruit_NeoPixel pixels = Adafruit_NeoPixel(PIXEL_W * PIXEL_H, PIN_NEOPIXEL, NE
 volatile unsigned long last_activity = 0x00UL;
 volatile unsigned long pulse_length = 0x00UL;
 enum _states {s_failsafe, s_breathe_red, s_larson_scan, s_orange_term, s_rainbow_sparkles} current_state;
+void breathe(char colour);
 void rainbow_sparkles(void);
 
 
@@ -35,6 +37,11 @@ void setup(void) {
 
   Serial.begin(BAUD_RATE);
   Serial.println("Deadlock Bling starting...");
+
+  int wdt_timeout = Watchdog.enable(1000);
+  Serial.print("Watchdog timeout set for: ");
+  Serial.print(wdt_timeout, DEC);
+  Serial.println("ms.");
 
   pinMode(PIN_NEOPIXEL, OUTPUT);
   pinMode(PIN_B_LED, OUTPUT);
@@ -55,12 +62,18 @@ void setup(void) {
 void loop(void) {
   unsigned int loop_timer = micros();
 
-  if ((micros() - last_activity) > ERR_PULSE) Serial.println("No RX pulses!");
+  if ((micros() - last_activity) > ERR_PULSE)
+  {
+    Serial.println("No RX pulses!");
+    current_state = s_failsafe;
+    pulse_length = 0x00UL;
+  }
 
   // monster switch case, where each case should draw a frame
   switch (current_state)
   {
     case s_breathe_red:
+      breathe('R'); // breathe red
       break;
     case s_larson_scan:
       break;
@@ -71,15 +84,22 @@ void loop(void) {
       break;
     case s_failsafe:
     default:
-      // breath green
-      Serial.println("Urk!");
-
+      breathe('G'); // breathe green
   }
   pixels.show(); // write out
+
+  Watchdog.reset();
 
   while ((micros() - loop_timer) < 100000);
 }
 
+/** Servo signal grabber
+
+    interrupts on changes to PIN_RC_RX
+    saves a timestamp on rising edges
+    calculates the duration and saves to a global on falling edges
+    on each edge updates a global activity counter
+*/
 void rc_handler(void) {
   static byte last_status = LOW;
   static unsigned long last_time = 0x00UL;
@@ -102,9 +122,32 @@ void rc_handler(void) {
   return;
 }
 
+/** Breath a colour
+* Code taken from here: https://sean.voisen.org/blog/2011/10/breathing-led-with-arduino/
+*/
+void breathe(char colour) {
+  const unsigned int duration = 80;
+  const float min_val = 0.36787944; // 1-e
+  const float max_val = 108.492061; // 255 / (e - (1/e))
+  static unsigned int animation_step = 0x00;
+
+  float brightness = (exp(sin(float(animation_step/duration)*PI)) - min_val) * max_val;
+
+  // consider using gamma values?
+
+  if(animation_step == duration) animation_step = 0x00;
+  else animation_step += 1;
+
+  if(colour == 'R') pixels.fill(pixels.Color(brightness,0,0));
+  if(colour == 'G') pixels.fill(pixels.Color(0,brightness,0));
+  if(colour == 'B') pixels.fill(pixels.Color(0,0,brightness));
+
+  return;
+}
+
 /** Generates random sparkles
- *  Inspired by: https://github.com/pimoroni/unicorn-hat
- */
+    Inspired by: https://github.com/pimoroni/unicorn-hat
+*/
 void rainbow_sparkles(void) {
   const unsigned int pixel_count = 8;
   unsigned int x, y, r, g, b;
