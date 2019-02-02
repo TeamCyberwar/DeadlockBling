@@ -11,8 +11,8 @@
 
 /** Settings */
 #define BAUD_RATE       (115200)
-#define PIXEL_W         (16) // pixels wide
-#define PIXEL_H         (6) // pixels high
+#define PIXEL_W         (24) // pixels wide
+#define PIXEL_H         (5) // pixels high
 #define MIN_PULSE       (1000) // ms long
 #define MAX_PULSE       (2000) // ms long
 #define ERR_PULSE       (30*MAX_PULSE) // ms long
@@ -54,6 +54,7 @@ void setup(void) {
   attachInterrupt(digitalPinToInterrupt(PIN_RC_RX), rc_handler, CHANGE);
 
   current_state = s_failsafe;
+  //current_state = s_breathe_red;
 
   pixels.begin();
 
@@ -126,16 +127,19 @@ void rc_handler(void) {
 * Code taken from here: https://sean.voisen.org/blog/2011/10/breathing-led-with-arduino/
 */
 void breathe(char colour) {
-  const unsigned int duration = 80;
+  const unsigned int duration = 60;
   const float min_val = 0.36787944; // 1-e
   const float max_val = 108.492061; // 255 / (e - (1/e))
   static unsigned int animation_step = 0x00;
 
-  float brightness = (exp(sin(float(animation_step/duration)*PI)) - min_val) * max_val;
+  float brightness = (exp(sin((float(animation_step)/duration)*PI)) - min_val) * max_val;
 
   // consider using gamma values?
+//  Serial.print(animation_step, DEC);
+//  Serial.print("\t");
+//  Serial.println(brightness);
 
-  if(animation_step == duration) animation_step = 0x00;
+  if(animation_step == 2*duration) animation_step = 0x00;
   else animation_step += 1;
 
   if(colour == 'R') pixels.fill(pixels.Color(brightness,0,0));
