@@ -16,7 +16,7 @@
 #define MIN_PULSE       (1000) // ms long
 #define MAX_PULSE       (2000) // ms long
 #define ERR_PULSE       (30*MAX_PULSE) // ms long
-#define FRAME_RATE      (100)
+#define FRAME_RATE      (50000)
 
 /** Pin Map */
 #define PIN_SPARE       (0) // used for seeding rand()
@@ -91,7 +91,7 @@ void loop(void) {
 
   Watchdog.reset();
 
-  while ((micros() - loop_timer) < 100000);
+  while ((micros() - loop_timer) < FRAME_RATE);
 }
 
 /** Servo signal grabber
@@ -128,8 +128,9 @@ void rc_handler(void) {
 */
 void breathe(char colour) {
   const unsigned int duration = 60;
-  const float min_val = 0.36787944; // 1-e
-  const float max_val = 108.492061; // 255 / (e - (1/e))
+  const float min_val = 0.18393972; // 1-e
+  const float max_val = 100.833798; // 255 / (e - (1/e))
+  
   static unsigned int animation_step = 0x00;
 
   float brightness = (exp(sin((float(animation_step)/duration)*PI)) - min_val) * max_val;
@@ -138,6 +139,8 @@ void breathe(char colour) {
 //  Serial.print(animation_step, DEC);
 //  Serial.print("\t");
 //  Serial.println(brightness);
+  
+  brightness = constrain(brightness, 0, 255);
 
   if(animation_step == 2*duration) animation_step = 0x00;
   else animation_step += 1;
