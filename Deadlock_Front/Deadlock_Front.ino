@@ -4,6 +4,8 @@
    @date 30/01/2019
    @board Adafruit Trinket M0
 
+   LEDs fit in a 350x30mm panel.
+
 */
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_SleepyDog.h>
@@ -54,7 +56,7 @@ void setup(void) {
   attachInterrupt(digitalPinToInterrupt(PIN_RC_RX), rc_handler, CHANGE);
 
   current_state = s_failsafe;
-  //current_state = s_breathe_red;
+  //current_state = s_rainbow_sparkles;
 
   pixels.begin();
 
